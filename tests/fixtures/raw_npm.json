@@ -1,0 +1,19 @@
+[
+  {
+    "ecosystem": "npm",
+    "package_name": "expresss-auth",
+    "version": "1.0.0",
+    "published_at": "2026-03-18T01:00:00+00:00",
+    "package_url": "https://npmjs.com/package/expresss-auth/v/1.0.0",
+    "source_repo": "https://github.com/example/expresss-auth",
+    "maintainer": "unknown",
+    "release_age_hours": 2,
+    "package_size": 7000000,
+    "release_count": 1,
+    "description": "discord free nitro helper",
+    "homepage": "https://198.51.100.10/tool",
+    "collector_source": "fixture",
+    "raw_metadata_ref": "fixture:npm",
+    "has_install_hooks": true
+  }
+]

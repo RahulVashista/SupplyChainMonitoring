@@ -1,0 +1,10 @@
+rules:
+  - id: npm-install-hooks-shell
+    languages: [json]
+    message: npm lifecycle script invokes shell/network tooling
+    severity: WARNING
+    metadata:
+      description: npm lifecycle script contains shell or network execution.
+      weight: 20
+    patterns:
+      - pattern-regex: '"(preinstall|install|postinstall|prepare)"\s*:\s*"[^"]*(curl|wget|powershell|bash -c|Invoke-WebRequest)[^"]*"'
