@@ -12,14 +12,14 @@ class FakeFetcher:
 
     def __call__(self, url: str, timeout: int = 20):  # type: ignore[override]
         self.urls.append(url)
+        if url == npm.ROOT_ENDPOINT:
+            return {"update_seq": "500-g1AAA"}
         if url.startswith(npm.CHANGES_ENDPOINT):
             parsed = urlparse(url)
             params = parse_qs(parsed.query)
             assert set(params) <= {"since", "limit"}
-            assert "include_docs" not in params
-            if params["since"] == ["now"]:
-                return {"results": [{"id": "left-pad"}], "last_seq": "100-g1AAA"}
-            raise AssertionError(f"unexpected since value: {params['since']}")
+            assert params["since"] == ["500-g1AAA"]
+            return {"results": [{"id": "left-pad"}], "last_seq": "700-g1AAA"}
         if url == npm.PACKUMENT_ENDPOINT.format(package_name="left-pad"):
             return {
                 "name": "left-pad",
@@ -43,8 +43,22 @@ class FakeFetcher:
         raise AssertionError(f"unexpected url: {url}")
 
 
-def test_collect_recent_packages_uses_supported_changes_api_and_persists_state(tmp_path: Path, monkeypatch) -> None:
+def test_first_run_initializes_from_update_seq_and_returns_no_candidates(tmp_path: Path, monkeypatch) -> None:
     state_path = tmp_path / "npm_state.json"
+    fetcher = FakeFetcher()
+    monkeypatch.setattr(npm, "fetch_json", fetcher)
+
+    results = npm.collect_recent_packages(hours=24, limit=50, state_path=state_path)
+
+    assert results == []
+    assert npm.load_state(state_path)["last_sequence"] == "500-g1AAA"
+    assert fetcher.urls == [npm.ROOT_ENDPOINT]
+    assert all("since=now" not in url for url in fetcher.urls)
+
+
+def test_subsequent_run_uses_saved_sequence_not_now(tmp_path: Path, monkeypatch) -> None:
+    state_path = tmp_path / "npm_state.json"
+    npm.save_state(state_path, "500-g1AAA")
     fetcher = FakeFetcher()
     monkeypatch.setattr(npm, "fetch_json", fetcher)
 
@@ -53,8 +67,9 @@ def test_collect_recent_packages_uses_supported_changes_api_and_persists_state(t
     assert len(results) == 1
     assert results[0]["package_name"] == "left-pad"
     assert results[0]["has_install_hooks"] is True
-    assert npm.load_state(state_path)["last_sequence"] == "100-g1AAA"
+    assert npm.load_state(state_path)["last_sequence"] == "700-g1AAA"
     assert any(url.startswith("https://registry.npmjs.org/left-pad") for url in fetcher.urls)
+    assert all("since=now" not in url for url in fetcher.urls)
 
 
 def test_build_changes_url_only_uses_since_and_limit() -> None:

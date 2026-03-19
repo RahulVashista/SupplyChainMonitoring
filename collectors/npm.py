@@ -13,12 +13,13 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError
-from urllib.parse import quote, urlencode, urlparse, parse_qsl
+from urllib.parse import parse_qsl, quote, urlencode, urlparse
 
 from collectors.common import configure_logging, dump_json, hours_since, load_json
 from collectors.http_client import fetch_json
 
 LOGGER = logging.getLogger(__name__)
+ROOT_ENDPOINT = "https://replicate.npmjs.com/"
 CHANGES_ENDPOINT = "https://replicate.npmjs.com/registry/_changes"
 PACKUMENT_ENDPOINT = "https://registry.npmjs.org/{package_name}"
 MAX_CHANGES = 250
@@ -29,8 +30,7 @@ SUPPORTED_CHANGE_PARAMS = {"since", "limit"}
 
 def build_changes_url(since: str, limit: int) -> str:
     params = {"since": since, "limit": str(limit)}
-    query = urlencode(params)
-    return f"{CHANGES_ENDPOINT}?{query}"
+    return f"{CHANGES_ENDPOINT}?{urlencode(params)}"
 
 
 def validate_changes_url(url: str) -> None:
@@ -40,19 +40,30 @@ def validate_changes_url(url: str) -> None:
         raise ValueError(f"Unsupported _changes query parameters present: {', '.join(unsupported)}")
 
 
-def load_state(state_path: Path) -> dict[str, Any]:
+def load_state(state_path: Path) -> dict[str, Any] | None:
     if not state_path.exists():
-        return {"last_sequence": "now"}
+        return None
     try:
         payload = load_json(state_path)
     except Exception as exc:  # noqa: BLE001
         LOGGER.warning("Failed to read npm state file %s: %s", state_path, exc)
-        return {"last_sequence": "now"}
-    return {"last_sequence": str(payload.get("last_sequence", "now"))}
+        return None
+    last_sequence = payload.get("last_sequence")
+    if last_sequence in (None, ""):
+        return None
+    return {"last_sequence": str(last_sequence)}
 
 
 def save_state(state_path: Path, last_sequence: str) -> None:
     dump_json(state_path, {"last_sequence": str(last_sequence), "saved_at": datetime.now(timezone.utc).isoformat()})
+
+
+def fetch_update_sequence() -> str:
+    payload = fetch_json(ROOT_ENDPOINT, timeout=20)
+    update_seq = payload.get("update_seq")
+    if update_seq in (None, ""):
+        raise RuntimeError("npm replication root did not return update_seq")
+    return str(update_seq)
 
 
 def extract_repository(doc: dict[str, Any]) -> str | None:
@@ -118,9 +129,7 @@ def fetch_changes_page(since: str, limit: int) -> dict[str, Any]:
     except HTTPError as exc:
         LOGGER.error("npm _changes request failed: %s", url)
         if exc.code == 400:
-            raise RuntimeError(
-                f"npm replication API rejected request {url}. Only supported parameters are: since, limit."
-            ) from exc
+            raise RuntimeError(f"npm replication API rejected request {url}. Only supported parameters are: since, limit.") from exc
         raise
 
 
@@ -129,10 +138,22 @@ def fetch_packument(package_name: str) -> dict[str, Any]:
     return fetch_json(PACKUMENT_ENDPOINT.format(package_name=encoded_name), timeout=20)
 
 
+def initialize_state(state_path: Path) -> str:
+    sequence = fetch_update_sequence()
+    save_state(state_path, sequence)
+    LOGGER.info("Initialized npm state from update_seq=%s; no backfill attempted", sequence)
+    return sequence
+
+
 def collect_recent_packages(hours: int, limit: int = MAX_CHANGES, state_path: Path = DEFAULT_STATE_PATH) -> list[dict[str, Any]]:
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
     state = load_state(state_path)
-    since = str(state.get("last_sequence", "now"))
+    if state is None:
+        initialize_state(state_path)
+        return []
+
+    since = str(state["last_sequence"])
+    LOGGER.info("Resuming npm replication from saved sequence %s", since)
     latest_sequence = since
     package_ids: list[str] = []
     seen_ids: set[str] = set()
