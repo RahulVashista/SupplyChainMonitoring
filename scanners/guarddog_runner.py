@@ -105,6 +105,33 @@ def ecosystem_to_guarddog(ecosystem: str) -> str:
     return {"pypi": "pypi", "npm": "npm"}.get(ecosystem, ecosystem)
 
 
+def extract_guarddog_findings(payload: Any) -> list[dict[str, Any]]:
+    if not isinstance(payload, dict):
+        return []
+
+    candidates: Any = []
+    if isinstance(payload.get("findings"), list):
+        candidates = payload["findings"]
+    elif isinstance(payload.get("issues"), list):
+        candidates = payload["issues"]
+    elif isinstance(payload.get("results"), list):
+        candidates = payload["results"]
+
+    findings: list[dict[str, Any]] = []
+    for finding in candidates:
+        if not isinstance(finding, dict):
+            continue
+        findings.append({
+            "rule_id": f"guarddog.{finding.get('rule_id', finding.get('id', 'issue'))}",
+            "title": finding.get("title", "GuardDog finding"),
+            "description": finding.get("description", "GuardDog reported a suspicious pattern."),
+            "weight": 20,
+            "severity_hint": str(finding.get("severity", "high")).lower(),
+            "evidence": {"location": finding.get("location"), "message": str(finding.get("message", ""))[:200]},
+        })
+    return findings
+
+
 def run_guarddog_on_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
     if shutil.which("guarddog") is None:
         return {"package": candidate["package_name"], "version": candidate["version"], "findings": [], "status": "guarddog_not_installed"}
@@ -118,30 +145,29 @@ def run_guarddog_on_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
         try:
             safe_extract(archive, unpack_dir)
             completed = subprocess.run(["guarddog", ecosystem_to_guarddog(candidate["ecosystem"]), "scan", str(unpack_dir), "--output-format", "json"], capture_output=True, text=True, timeout=180, check=False)
+        except subprocess.TimeoutExpired as exc:
+            LOGGER.error("GuardDog timed out for %s after %s seconds", candidate["package_name"], exc.timeout)
+            return {"package": candidate["package_name"], "version": candidate["version"], "findings": [], "status": "timeout"}
         except Exception as exc:  # noqa: BLE001
             LOGGER.error("GuardDog execution failed for %s: %s", candidate["package_name"], exc)
             return {"package": candidate["package_name"], "version": candidate["version"], "findings": [], "status": "execution_failed"}
     if completed.returncode not in (0, 1):
-        return {"package": candidate["package_name"], "version": candidate["version"], "findings": [], "status": f"error:{completed.returncode}", "stderr": completed.stderr[:400]}
+        return {"package": candidate["package_name"], "version": candidate["version"], "findings": [], "status": f"error:{completed.returncode}", "stderr": (completed.stderr or "")[:400]}
     try:
         payload = json.loads(completed.stdout or "{}")
     except json.JSONDecodeError:
-        payload = {"raw": completed.stdout[:400]}
-    findings = []
-    for finding in payload.get("issues", payload.get("findings", [])):
-        findings.append({
-            "rule_id": f"guarddog.{finding.get('rule_id', finding.get('id', 'issue'))}",
-            "title": finding.get("title", "GuardDog finding"),
-            "description": finding.get("description", "GuardDog reported a suspicious pattern."),
-            "weight": 20,
-            "severity_hint": str(finding.get("severity", "high")).lower(),
-            "evidence": {"location": finding.get("location"), "message": str(finding.get("message", ""))[:200]},
-        })
+        return {"package": candidate["package_name"], "version": candidate["version"], "findings": [], "status": "parse_error", "stdout": (completed.stdout or "")[:400]}
+    findings = extract_guarddog_findings(payload)
     return {"package": candidate["package_name"], "version": candidate["version"], "findings": findings, "status": "ok"}
 
 
 def run(candidates: Iterable[dict[str, Any]]) -> dict[str, Any]:
-    return {"results": [run_guarddog_on_candidate(candidate) for candidate in candidates if should_shortlist(candidate)]}
+    results = []
+    for candidate in candidates:
+        if not should_shortlist(candidate):
+            continue
+        results.append(run_guarddog_on_candidate(candidate))
+    return {"results": results}
 
 
 def build_parser() -> argparse.ArgumentParser:
