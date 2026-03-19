@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Finding",
+  "type": "object",
+  "required": [
+    "ecosystem",
+    "package_name",
+    "version",
+    "score",
+    "matched_rules",
+    "triage_status",
+    "severity",
+    "why_flagged",
+    "package_url",
+    "maintainer",
+    "published_at"
+  ],
+  "properties": {
+    "ecosystem": {"type": "string"},
+    "package_name": {"type": "string"},
+    "version": {"type": "string"},
+    "score": {"type": "integer"},
+    "matched_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule_id", "title", "description", "weight", "severity_hint", "evidence"],
+        "properties": {
+          "rule_id": {"type": "string"},
+          "title": {"type": "string"},
+          "description": {"type": "string"},
+          "weight": {"type": "integer"},
+          "severity_hint": {"type": "string"},
+          "evidence": {"type": "object"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "triage_status": {"type": "string"},
+    "severity": {"type": "string"},
+    "why_flagged": {"type": "string"},
+    "package_url": {"type": ["string", "null"]},
+    "source_repo": {"type": ["string", "null"]},
+    "maintainer": {"type": "string"},
+    "published_at": {"type": ["string", "null"]}
+  },
+  "additionalProperties": true
+}

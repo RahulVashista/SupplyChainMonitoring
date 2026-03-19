@@ -1,0 +1,17 @@
+rules:
+  - id: suspicious-network-string
+    languages: [python, javascript, typescript]
+    message: outbound webhook or bot API string
+    severity: WARNING
+    metadata:
+      description: source code references a common exfiltration endpoint.
+      weight: 15
+    pattern-regex: '(discord(app)?\\.com/api/webhooks|api\\.telegram\\.org/bot|pastebin\\.com/raw|hastebin\\.com)'
+  - id: credential-path-access
+    languages: [python, javascript, typescript]
+    message: source references sensitive credential paths
+    severity: ERROR
+    metadata:
+      description: source code references common local credential file paths.
+      weight: 25
+    pattern-regex: '(\\.aws/credentials|id_rsa|Login Data|\\.npmrc|\\.pypirc|/\\.ssh/)'
