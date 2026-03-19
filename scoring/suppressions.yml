@@ -1,0 +1,22 @@
+{
+  "packages": [
+    {
+      "ecosystem": "pypi",
+      "package_name": "pip",
+      "rule_ids": ["meta.typosquat"],
+      "reason": "Baseline package itself should not be flagged as its own typosquat."
+    },
+    {
+      "ecosystem": "npm",
+      "package_name": "react",
+      "rule_ids": ["meta.typosquat"],
+      "reason": "Baseline package itself should not be flagged as its own typosquat."
+    }
+  ],
+  "rules": [
+    {
+      "rule_id": "static.extract_failed",
+      "reason": "Extraction issues alone are too noisy for public reporting."
+    }
+  ]
+}
