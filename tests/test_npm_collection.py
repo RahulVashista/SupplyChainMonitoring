@@ -43,7 +43,21 @@ class FakeFetcher:
         raise AssertionError(f"unexpected url: {url}")
 
 
-def test_first_run_initializes_from_update_seq_and_returns_no_candidates(tmp_path: Path, monkeypatch) -> None:
+def test_state_file_with_now_is_ignored_and_reinitialized(tmp_path: Path, monkeypatch) -> None:
+    state_path = tmp_path / "npm_state.json"
+    state_path.write_text('{"last_sequence": "now"}', encoding="utf-8")
+    fetcher = FakeFetcher()
+    monkeypatch.setattr(npm, "fetch_json", fetcher)
+
+    results = npm.collect_recent_packages(hours=24, limit=50, state_path=state_path)
+
+    assert results == []
+    assert npm.load_state(state_path)["last_sequence"] == "500-g1AAA"
+    assert fetcher.urls == [npm.ROOT_ENDPOINT]
+    assert all("since=now" not in url for url in fetcher.urls)
+
+
+def test_missing_state_initializes_from_update_seq(tmp_path: Path, monkeypatch) -> None:
     state_path = tmp_path / "npm_state.json"
     fetcher = FakeFetcher()
     monkeypatch.setattr(npm, "fetch_json", fetcher)
@@ -56,7 +70,7 @@ def test_first_run_initializes_from_update_seq_and_returns_no_candidates(tmp_pat
     assert all("since=now" not in url for url in fetcher.urls)
 
 
-def test_subsequent_run_uses_saved_sequence_not_now(tmp_path: Path, monkeypatch) -> None:
+def test_valid_saved_sequence_resumes_normally(tmp_path: Path, monkeypatch) -> None:
     state_path = tmp_path / "npm_state.json"
     npm.save_state(state_path, "500-g1AAA")
     fetcher = FakeFetcher()

@@ -26,6 +26,7 @@ MAX_CHANGES = 250
 MAX_PAGES = 5
 DEFAULT_STATE_PATH = Path("data/raw/npm_state.json")
 SUPPORTED_CHANGE_PARAMS = {"since", "limit"}
+INVALID_SEQUENCES = {"", "now"}
 
 
 def build_changes_url(since: str, limit: int) -> str:
@@ -40,6 +41,15 @@ def validate_changes_url(url: str) -> None:
         raise ValueError(f"Unsupported _changes query parameters present: {', '.join(unsupported)}")
 
 
+def is_valid_sequence(value: Any) -> bool:
+    if value is None:
+        return False
+    normalized = str(value).strip()
+    if normalized.lower() in INVALID_SEQUENCES:
+        return False
+    return bool(normalized)
+
+
 def load_state(state_path: Path) -> dict[str, Any] | None:
     if not state_path.exists():
         return None
@@ -49,9 +59,10 @@ def load_state(state_path: Path) -> dict[str, Any] | None:
         LOGGER.warning("Failed to read npm state file %s: %s", state_path, exc)
         return None
     last_sequence = payload.get("last_sequence")
-    if last_sequence in (None, ""):
+    if not is_valid_sequence(last_sequence):
+        LOGGER.warning("Ignoring invalid npm last_sequence in %s: %r", state_path, last_sequence)
         return None
-    return {"last_sequence": str(last_sequence)}
+    return {"last_sequence": str(last_sequence).strip()}
 
 
 def save_state(state_path: Path, last_sequence: str) -> None:
@@ -61,9 +72,9 @@ def save_state(state_path: Path, last_sequence: str) -> None:
 def fetch_update_sequence() -> str:
     payload = fetch_json(ROOT_ENDPOINT, timeout=20)
     update_seq = payload.get("update_seq")
-    if update_seq in (None, ""):
-        raise RuntimeError("npm replication root did not return update_seq")
-    return str(update_seq)
+    if not is_valid_sequence(update_seq):
+        raise RuntimeError("npm replication root did not return a valid update_seq")
+    return str(update_seq).strip()
 
 
 def extract_repository(doc: dict[str, Any]) -> str | None:
@@ -122,7 +133,10 @@ def extract_candidate(doc: dict[str, Any], cutoff: datetime) -> dict[str, Any] |
 
 
 def fetch_changes_page(since: str, limit: int) -> dict[str, Any]:
-    url = build_changes_url(since, limit)
+    normalized_since = since.strip()
+    if normalized_since.lower() == "now":
+        raise RuntimeError("Refusing to send npm _changes request with since=now; state must be initialized from update_seq first.")
+    url = build_changes_url(normalized_since, limit)
     validate_changes_url(url)
     try:
         return fetch_json(url, timeout=20)
@@ -152,7 +166,12 @@ def collect_recent_packages(hours: int, limit: int = MAX_CHANGES, state_path: Pa
         initialize_state(state_path)
         return []
 
-    since = str(state["last_sequence"])
+    since = str(state["last_sequence"]).strip()
+    if since.lower() == "now":
+        LOGGER.warning("Ignoring invalid npm saved sequence 'now' in %s", state_path)
+        initialize_state(state_path)
+        return []
+
     LOGGER.info("Resuming npm replication from saved sequence %s", since)
     latest_sequence = since
     package_ids: list[str] = []
@@ -160,7 +179,7 @@ def collect_recent_packages(hours: int, limit: int = MAX_CHANGES, state_path: Pa
 
     for _ in range(MAX_PAGES):
         page = fetch_changes_page(since, limit)
-        latest_sequence = str(page.get("last_seq", since))
+        latest_sequence = str(page.get("last_seq", since)).strip()
         results = page.get("results", [])
         for item in results:
             package_id = item.get("id")

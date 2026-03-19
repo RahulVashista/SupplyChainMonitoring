@@ -13,3 +13,7 @@ venv/
 coverage.xml
 htmlcov/
 *.egg-info/
+
+# Runtime collector state and intermediate outputs
+data/raw/*.json
+data/normalized/*.json
