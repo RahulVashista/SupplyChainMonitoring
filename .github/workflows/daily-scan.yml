@@ -33,33 +33,38 @@ jobs:
           pip install -r requirements.txt
           pip install guarddog semgrep || true
 
+      - name: Debug import paths
+        run: |
+          git rev-parse HEAD
+          find . \( -name "http.py" -o -name "http_client.py" \) | sort
+
       - name: Collect new packages
         run: |
-          python collectors/pypi.py --hours 24 --out data/raw/pypi.json
-          python collectors/npm.py --hours 24 --out data/raw/npm.json
+          python -m collectors.pypi --hours 24 --out data/raw/pypi.json
+          python -m collectors.npm --hours 24 --out data/raw/npm.json
 
       - name: Normalize and prefilter
         run: |
-          python collectors/common.py \
+          python -m collectors.common \
             --inputs data/raw/pypi.json data/raw/npm.json \
             --out data/normalized/candidates.json
 
       - name: Run GuardDog
         run: |
-          python scanners/guarddog_runner.py \
+          python -m scanners.guarddog_runner \
             --in data/normalized/candidates.json \
             --out data/normalized/guarddog_results.json
 
       - name: Run metadata and static scoring
         run: |
-          python scanners/metadata_rules.py \
+          python -m scanners.metadata_rules \
             --in data/normalized/candidates.json \
             --guarddog data/normalized/guarddog_results.json \
             --out data/latest-findings.json
 
       - name: Build markdown report
         run: |
-          python scoring/score.py \
+          python -m scoring.score \
             --in data/latest-findings.json \
             --out data/latest-findings.json \
             --report reports/${REPORT_DATE}.md

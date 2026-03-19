@@ -65,12 +65,12 @@ Thresholds:
 ```bash
 python -m pip install --upgrade pip
 pip install -r requirements.txt
-python collectors/pypi.py --hours 24 --out data/raw/pypi.json
-python collectors/npm.py --hours 24 --out data/raw/npm.json
-python collectors/common.py --inputs data/raw/pypi.json data/raw/npm.json --out data/normalized/candidates.json
-python scanners/guarddog_runner.py --in data/normalized/candidates.json --out data/normalized/guarddog_results.json
-python scanners/metadata_rules.py --in data/normalized/candidates.json --guarddog data/normalized/guarddog_results.json --out data/latest-findings.json
-python scoring/score.py --in data/latest-findings.json --report reports/$(date -u +%F).md --out data/latest-findings.json
+python -m collectors.pypi --hours 24 --out data/raw/pypi.json
+python -m collectors.npm --hours 24 --out data/raw/npm.json
+python -m collectors.common --inputs data/raw/pypi.json data/raw/npm.json --out data/normalized/candidates.json
+python -m scanners.guarddog_runner --in data/normalized/candidates.json --out data/normalized/guarddog_results.json
+python -m scanners.metadata_rules --in data/normalized/candidates.json --guarddog data/normalized/guarddog_results.json --out data/latest-findings.json
+python -m scoring.score --in data/latest-findings.json --report reports/$(date -u +%F).md --out data/latest-findings.json
 ```
 
 ## GitHub Actions

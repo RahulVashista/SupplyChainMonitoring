@@ -27,7 +27,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Refresh baselines
-        run: python collectors/refresh_baselines.py --limit 1000
+        run: python -m collectors.refresh_baselines --limit 1000
 
       - name: Commit baseline updates
         run: |
