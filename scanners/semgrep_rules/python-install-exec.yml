@@ -1,0 +1,19 @@
+rules:
+  - id: python-setup-exec
+    languages: [python]
+    message: setup or packaging file invokes execution/network functions
+    severity: ERROR
+    metadata:
+      description: setup.py or related packaging context uses execution or network access.
+      weight: 20
+    patterns:
+      - pattern-either:
+          - pattern: subprocess.$FUNC(...)
+          - pattern: os.system(...)
+          - pattern: requests.$FUNC(...)
+          - pattern: socket.$FUNC(...)
+    paths:
+      include:
+        - setup.py
+        - pyproject.toml
+        - "**/setup.py"
