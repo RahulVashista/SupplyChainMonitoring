@@ -1,0 +1,19 @@
+[
+  {
+    "ecosystem": "pypi",
+    "package_name": "reqeusts-tools",
+    "version": "0.1.0",
+    "published_at": "2026-03-18T00:00:00+00:00",
+    "package_url": "https://pypi.org/project/reqeusts-tools/0.1.0/",
+    "source_repo": null,
+    "maintainer": "unknown",
+    "release_age_hours": 4,
+    "package_size": 4096,
+    "release_count": 1,
+    "description": "Enterprise wallet recovery helper with telegram integration",
+    "homepage": "https://bit.ly/example",
+    "collector_source": "fixture",
+    "raw_metadata_ref": "fixture:pypi",
+    "has_install_hooks": false
+  }
+]

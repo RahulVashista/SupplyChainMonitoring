@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NormalizedCandidate",
+  "type": "object",
+  "required": [
+    "ecosystem",
+    "package_name",
+    "version",
+    "published_at",
+    "package_url",
+    "maintainer",
+    "score",
+    "matched_rules",
+    "triage_status"
+  ],
+  "properties": {
+    "ecosystem": {"type": "string"},
+    "package_name": {"type": "string"},
+    "version": {"type": "string"},
+    "published_at": {"type": ["string", "null"]},
+    "package_url": {"type": ["string", "null"]},
+    "source_repo": {"type": ["string", "null"]},
+    "maintainer": {"type": "string"},
+    "release_age_hours": {"type": ["number", "null"]},
+    "package_size": {"type": "integer"},
+    "release_count": {"type": "integer"},
+    "description": {"type": "string"},
+    "homepage": {"type": ["string", "null"]},
+    "score": {"type": "integer"},
+    "matched_rules": {"type": "array"},
+    "triage_status": {"type": "string"},
+    "package_basename": {"type": "string"},
+    "normalized_name": {"type": "string"},
+    "likely_popular_target": {"type": ["string", "null"]},
+    "similarity_score": {"type": "number"},
+    "has_install_hooks": {"type": "boolean"},
+    "collector_source": {"type": ["string", "null"]},
+    "raw_metadata_ref": {"type": ["string", "null"]}
+  },
+  "additionalProperties": true
+}

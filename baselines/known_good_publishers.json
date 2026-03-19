@@ -1,0 +1,4 @@
+{
+  "pypi": ["psf", "pallets", "django-software-foundation", "pypa"],
+  "npm": ["npm", "facebook", "vercel", "microsoft"]
+}

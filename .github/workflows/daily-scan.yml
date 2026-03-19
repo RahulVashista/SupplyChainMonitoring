@@ -1,0 +1,95 @@
+name: Daily supply chain scan
+
+on:
+  schedule:
+    - cron: "15 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      REPORT_DATE: ${{ github.event.inputs.report_date || '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set report date
+        run: echo "REPORT_DATE=${REPORT_DATE:-$(date -u +%F)}" >> "$GITHUB_ENV"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install guarddog semgrep || true
+
+      - name: Debug import paths
+        run: |
+          git rev-parse HEAD
+          find . \( -name "http.py" -o -name "http_client.py" \) | sort
+
+      - name: Collect new packages
+        run: |
+          python -m collectors.pypi --hours 24 --out data/raw/pypi.json
+          python -m collectors.npm --hours 24 --out data/raw/npm.json
+
+      - name: Normalize and prefilter
+        run: |
+          python -m collectors.common \
+            --inputs data/raw/pypi.json data/raw/npm.json \
+            --out data/normalized/candidates.json
+
+      - name: Run GuardDog
+        run: |
+          python -m scanners.guarddog_runner \
+            --in data/normalized/candidates.json \
+            --out data/normalized/guarddog_results.json
+
+      - name: Run metadata and static scoring
+        run: |
+          python -m scanners.metadata_rules \
+            --in data/normalized/candidates.json \
+            --guarddog data/normalized/guarddog_results.json \
+            --out data/latest-findings.json
+
+      - name: Build markdown report
+        run: |
+          python -m scoring.score \
+            --in data/latest-findings.json \
+            --out data/latest-findings.json \
+            --report reports/${REPORT_DATE}.md
+
+      - name: Write job summary
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          data = json.loads(pathlib.Path('data/latest-summary.json').read_text())
+          lines = [
+              '# Daily supply chain scan summary',
+              '',
+              f"- Packages scanned: {data['total_scanned']}",
+              f"- Suspicious: {data['total_suspicious']}",
+              f"- High confidence: {data['total_high_confidence']}",
+              f"- Ecosystems: {', '.join(data['ecosystems']) or 'none'}",
+          ]
+          pathlib.Path('.summary.md').write_text('\n'.join(lines))
+          PY
+          cat .summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/ data/latest-findings.json data/latest-summary.json data/raw/ data/normalized/
+          git commit -m "Daily report ${REPORT_DATE}" || echo "No changes"
+          git push
