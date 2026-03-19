@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from collectors.common import configure_logging, dump_json, hours_since
-from collectors.http import fetch_json, fetch_text
+from collectors.http_client import fetch_json, fetch_text
 
 LOGGER = logging.getLogger(__name__)
 RECENT_UPDATES_RSS = "https://pypi.org/rss/updates.xml"

@@ -12,7 +12,7 @@ import logging
 from pathlib import Path
 
 from collectors.common import configure_logging
-from collectors.http import fetch_json
+from collectors.http_client import fetch_json
 
 LOGGER = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parents[1]

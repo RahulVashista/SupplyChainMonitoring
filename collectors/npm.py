@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from collectors.common import configure_logging, dump_json, hours_since
-from collectors.http import fetch_json
+from collectors.http_client import fetch_json
 
 LOGGER = logging.getLogger(__name__)
 CHANGES_URL = "https://replicate.npmjs.com/_changes?include_docs=true&descending=true&limit={limit}"

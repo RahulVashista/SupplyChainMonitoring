@@ -21,7 +21,7 @@ from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 from collectors.common import configure_logging, dump_json, load_json
-from collectors.http import fetch_json
+from collectors.http_client import fetch_json
 
 LOGGER = logging.getLogger(__name__)
 TMP_SIZE_LIMIT = 20 * 1024 * 1024
