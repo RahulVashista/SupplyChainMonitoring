@@ -362,6 +362,7 @@
 007_danish_student_manegment_system
 007_student_management_with_iqru
 007bmicalculator
+007devkit
 007malik_cli-number-guessig-game
 007putra-my-bot
 008-mysql
@@ -597,6 +598,7 @@
 01basicreact
 01cli_simple_caculator
 01cm-new-layout
+01credit_sdk
 01da9t
 01daxie
 01demozz
@@ -996,5 +998,3 @@
 03-todo-list-huzaifak
 03-up-npm
 03-webpack-number
-03-webpack-number-test
-03-webpack-numbers
