@@ -138,6 +138,7 @@
 -unlimited-minecoins-minecraft-generator-no-human-verification546
 -us-atm-machine
 -users-random-messages
+-vibe-coder-telegram
 -voxgig-swim
 -wlq-mxgrapheditor
 -wulinlong9.10rk
@@ -507,6 +508,7 @@
 01.webpack-base
 01.webpack-study
 010-static-http-server
+0101-agents
 0101_hamza_currancy_exchange
 0101todolist
 0105_number-guessing-game
@@ -768,6 +770,7 @@
 02_codewei
 02_day
 02_ghtverification_cli
+02_git
 02_guess_the_hidden_number
 02_guest-verification_cli
 02_guest_verification_cli_hasan
@@ -995,6 +998,3 @@
 03-testcustom
 03-testuploadingnpm
 03-three_basic
-03-todo-list-huzaifak
-03-up-npm
-03-webpack-number
