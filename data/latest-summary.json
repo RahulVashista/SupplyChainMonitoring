@@ -1,10 +1,9 @@
 {
   "ecosystems": [
-    "npm",
     "pypi"
   ],
-  "generated_at": "2026-06-03T07:31:37.693348+00:00",
-  "total_high_confidence": 8,
-  "total_scanned": 73,
-  "total_suspicious": 18
+  "generated_at": "2026-06-04T07:17:17.513262+00:00",
+  "total_high_confidence": 6,
+  "total_scanned": 83,
+  "total_suspicious": 24
 }
