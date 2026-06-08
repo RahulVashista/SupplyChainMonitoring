@@ -2,8 +2,8 @@
   "ecosystems": [
     "pypi"
   ],
-  "generated_at": "2026-06-07T07:12:46.640794+00:00",
-  "total_high_confidence": 11,
-  "total_scanned": 84,
-  "total_suspicious": 22
+  "generated_at": "2026-06-08T07:16:28.274508+00:00",
+  "total_high_confidence": 3,
+  "total_scanned": 81,
+  "total_suspicious": 14
 }
